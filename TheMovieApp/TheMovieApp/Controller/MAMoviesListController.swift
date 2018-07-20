@@ -11,28 +11,45 @@ import RxSwift
 
 class MAMoviesListController: UITableViewController {
     
-    let disposedBag = DisposeBag()
+    private let disposedBag = DisposeBag()
     
-    var upcomingMovies:[MAMovie] = []
+    private var upcomingMovies:[MAMovie] = []
+    private var numberOfPages = 1
 
     override func viewDidLoad() {
         super.viewDidLoad()
         
         title = "Próximos lançamentos"
+        
+        tableView.estimatedRowHeight = 400.0
+        tableView.rowHeight = UITableViewAutomaticDimension
 
+        addActivityIndicatorTableViewFooter()
         getUpcomingMovies()
     }
 
     private func getUpcomingMovies(){
-        let upcomingMoviesObservable = MANetwork().sendRequest(url: .UPCOMING_MOVIE_LIST, responseType: MAMovie.self)
+        let upcomingMoviesObservable = MANetwork().sendGETRequestResponseJSON(url: MANetwork.UPCOMING_MOVIE_LIST_PAGE + String(describing: numberOfPages), responseType: MAMovie.self)
         
         upcomingMoviesObservable.subscribe(onNext: { [weak self](upcomingMovies) in
-            self?.upcomingMovies = upcomingMovies
+            self?.upcomingMovies.append(contentsOf: upcomingMovies)
         }, onError: { (error) in
             print(error)
         }, onCompleted: {
             self.tableView.reloadData()
         }).disposed(by: disposedBag)
+    }
+    
+    private func addActivityIndicatorTableViewFooter(){
+        let spinner = UIActivityIndicatorView(activityIndicatorStyle: .gray)
+        spinner.startAnimating()
+        spinner.frame = CGRect(x: 0, y: 0, width: tableView.frame.width, height: 44)
+        tableView.tableFooterView = spinner;
+    }
+    
+    private func getOneMoreUpcomingMoviePage(){
+        numberOfPages += 1
+        getUpcomingMovies()
     }
     
     
@@ -47,10 +64,21 @@ class MAMoviesListController: UITableViewController {
     }
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: "basicCell", for: indexPath)
-
-        cell.textLabel?.text = upcomingMovies[indexPath.row].title
+        let cell = tableView.dequeueReusableCell(withIdentifier: "movieListCell", for: indexPath) as! MAMovieListCell
+ 
+        cell.movie = upcomingMovies[indexPath.row]
 
         return cell
     }
+    
+    override func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
+        return UITableViewAutomaticDimension
+    }
+    
+    override func tableView(_ tableView: UITableView, willDisplay cell: UITableViewCell, forRowAt indexPath: IndexPath) {
+        if (indexPath.row == upcomingMovies.count - 1) {
+            getOneMoreUpcomingMoviePage()
+        }
+    }
+
 }

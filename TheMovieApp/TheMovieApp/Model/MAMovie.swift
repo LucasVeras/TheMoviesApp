@@ -12,6 +12,8 @@ import ObjectMapper
 class MAMovie: Mappable {
     
     var title: String?
+    var imagePoster: String?
+    var releaseDate: String?
     
     required init?(map: Map) {
         
@@ -19,6 +21,8 @@ class MAMovie: Mappable {
     
     func mapping(map: Map) {
         title <- map["title"]
+        releaseDate <- map["release_date"]
+        imagePoster <- map["poster_path"]
     }
 
 }
