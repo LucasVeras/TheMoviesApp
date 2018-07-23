@@ -18,7 +18,7 @@ class MAMovieListCell: UITableViewCell {
     
     @IBOutlet weak var movieImageActivityIndicator: UIActivityIndicatorView!
     
-    private let disposedBag = DisposeBag()
+    private var disposable: Disposable?
     
     var movie: MAMovie? {
         didSet{
@@ -44,25 +44,25 @@ class MAMovieListCell: UITableViewCell {
             movieImageActivityIndicator.isHidden = false
             movieImageActivityIndicator.startAnimating()
             
-            let urlMovieImagePoster = MANetwork.GET_MOVIE_IMAGE_POSTER + imageString
+            let movieImagePosterObservable = MANetwork().sendGETRequestResponseData(url: MANetwork.GET_MOVIE_IMAGE_POSTER + imageString)
             
-            let movieImagePosterObservable = MANetwork().sendGETRequestResponseData(url: urlMovieImagePoster)
-            
-            movieImagePosterObservable.subscribe(onNext: { [weak self](imagePosterData) in
+            disposable = movieImagePosterObservable.subscribe(onNext: { [weak self](imagePosterData) in
                 self?.movieImage.image = UIImage(data: imagePosterData)
             }, onError: { (error) in
                 print(error)
             }, onCompleted: {
                 self.movieImageActivityIndicator.stopAnimating()
                 self.movieImageActivityIndicator.isHidden = true
-            }).disposed(by: disposedBag)
+            })
         }
     }
     
     override func prepareForReuse() {
         movieImage.image = nil
-        movieReleaseDate.text = nil
-        movieTitle.text = nil
+        movieReleaseDate.text = ""
+        movieTitle.text = ""
+        
+        disposable?.dispose()
     }
 
 }

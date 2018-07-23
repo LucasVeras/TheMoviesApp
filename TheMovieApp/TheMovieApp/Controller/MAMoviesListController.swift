@@ -8,13 +8,16 @@
 
 import UIKit
 import RxSwift
+import RxCocoa
 
 class MAMoviesListController: UITableViewController {
     
     private let disposedBag = DisposeBag()
     
+    private var upcomingMoviesFiltered:[MAMovie] = []
     private var upcomingMovies:[MAMovie] = []
     private var numberOfPages = 1
+    private let disposeBag = DisposeBag()
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -23,9 +26,30 @@ class MAMoviesListController: UITableViewController {
         
         tableView.estimatedRowHeight = 400.0
         tableView.rowHeight = UITableViewAutomaticDimension
+        tableView.prefetchDataSource = self
 
         addActivityIndicatorTableViewFooter()
         getUpcomingMovies()
+        setupSearchBar()
+    }
+    
+    private func setupSearchBar() {
+        let searchController = UISearchController(searchResultsController: nil) // Search Controller
+        searchController.obscuresBackgroundDuringPresentation = false
+        
+        searchController.searchBar.rx.text.orEmpty.subscribe(onNext: { [unowned self] query in
+            self.upcomingMoviesFiltered = query.isEmpty ? self.upcomingMovies : self.upcomingMovies.filter { $0.title?.lowercased().range(of: query.lowercased()) != nil }
+            self.reloadTableView()
+        }).disposed(by: disposeBag)
+        
+        searchController.searchBar.rx.cancelButtonClicked
+            .subscribe(onNext: { [unowned self] (_) in
+                self.upcomingMoviesFiltered = self.upcomingMovies
+                self.reloadTableView()
+        }).disposed(by: disposeBag)
+        
+        navigationItem.hidesSearchBarWhenScrolling = false
+        navigationItem.searchController = searchController
     }
 
     private func getUpcomingMovies(){
@@ -33,10 +57,11 @@ class MAMoviesListController: UITableViewController {
         
         upcomingMoviesObservable.subscribe(onNext: { [weak self](upcomingMovies) in
             self?.upcomingMovies.append(contentsOf: upcomingMovies)
+            self?.upcomingMoviesFiltered = (self?.upcomingMovies)!
         }, onError: { (error) in
             print(error)
         }, onCompleted: {
-            self.tableView.reloadData()
+            self.reloadTableView()
         }).disposed(by: disposedBag)
     }
     
@@ -45,6 +70,10 @@ class MAMoviesListController: UITableViewController {
         spinner.startAnimating()
         spinner.frame = CGRect(x: 0, y: 0, width: tableView.frame.width, height: 44)
         tableView.tableFooterView = spinner;
+    }
+    
+    private func reloadTableView() {
+        DispatchQueue.main.async { self.tableView.reloadData() }
     }
     
     private func getOneMoreUpcomingMoviePage(){
@@ -60,13 +89,13 @@ class MAMoviesListController: UITableViewController {
     }
 
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return upcomingMovies.count
+        return upcomingMoviesFiltered.count
     }
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "movieListCell", for: indexPath) as! MAMovieListCell
- 
-        cell.movie = upcomingMovies[indexPath.row]
+
+        cell.movie = upcomingMoviesFiltered[indexPath.row]
 
         return cell
     }
@@ -74,11 +103,29 @@ class MAMoviesListController: UITableViewController {
     override func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
         return UITableViewAutomaticDimension
     }
-    
-    override func tableView(_ tableView: UITableView, willDisplay cell: UITableViewCell, forRowAt indexPath: IndexPath) {
-        if (indexPath.row == upcomingMovies.count - 1) {
+
+}
+
+extension MAMoviesListController: UITableViewDataSourcePrefetching {
+    func tableView(_ tableView: UITableView, prefetchRowsAt indexPaths: [IndexPath]) {
+        if indexPaths.contains(where: isLoadingCell) {
             getOneMoreUpcomingMoviePage()
         }
     }
+}
 
+extension MAMoviesListController: UISearchControllerDelegate {
+    
+}
+
+private extension MAMoviesListController {
+    func isLoadingCell(for indexPath: IndexPath) -> Bool {
+        return indexPath.row >= upcomingMovies.count - 1
+    }
+    
+    func visibleIndexPathsToReload(intersecting indexPaths: [IndexPath]) -> [IndexPath] {
+        let indexPathsForVisibleRows = tableView.indexPathsForVisibleRows ?? []
+        let indexPathsIntersection = Set(indexPathsForVisibleRows).intersection(indexPaths)
+        return Array(indexPathsIntersection)
+    }
 }
