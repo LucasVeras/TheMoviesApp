@@ -14,6 +14,7 @@ class MAMovie: Mappable {
     var title: String?
     var imagePoster: String?
     var releaseDate: String?
+    var overview: String?
     
     required init?(map: Map) {
         
@@ -23,6 +24,7 @@ class MAMovie: Mappable {
         title <- map["title"]
         releaseDate <- map["release_date"]
         imagePoster <- map["poster_path"]
+        overview <- map["overview"]
     }
 
 }

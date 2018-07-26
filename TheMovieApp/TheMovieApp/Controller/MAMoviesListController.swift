@@ -81,6 +81,15 @@ class MAMoviesListController: UITableViewController {
         getUpcomingMovies()
     }
     
+    // MARK: Prepare for segue
+    
+    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
+        if let controller = segue.destination as? MAMovieDetailController {
+            let indexPath = (sender as! IndexPath)
+            controller.movieToDetail = upcomingMoviesFiltered[indexPath.row]
+            controller.moviePosterImage = (tableView.cellForRow(at: indexPath) as! MAMovieListCell).movieImage.image
+        }
+    }
     
     // MARK: - Table view data source
 
@@ -103,6 +112,10 @@ class MAMoviesListController: UITableViewController {
     override func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
         return UITableViewAutomaticDimension
     }
+    
+    override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        performSegue(withIdentifier: "showMovieDetail", sender: indexPath)
+    }
 
 }
 
@@ -112,10 +125,6 @@ extension MAMoviesListController: UITableViewDataSourcePrefetching {
             getOneMoreUpcomingMoviePage()
         }
     }
-}
-
-extension MAMoviesListController: UISearchControllerDelegate {
-    
 }
 
 private extension MAMoviesListController {
