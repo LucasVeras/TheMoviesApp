@@ -35,8 +35,18 @@ class MAMovieListCell: UITableViewCell {
     private func configureCell(){
         movieTitle.text = movie?.title
         movieReleaseDate.text = movie?.releaseDate
+        movieGenre.text? = ""
         
-        getMoviePosterImage()
+        guard let genres = movie?.genres else { return }
+        for genre in genres {
+            if genres.index(where: { $0.id == genre.id} ) == 0 {
+                movieGenre.text?.append("\(String(describing: genre.name!))")
+            } else{
+                movieGenre.text?.append("   \(String(describing: genre.name!))")
+            }
+        }
+        
+        DispatchQueue.main.async { self.getMoviePosterImage() }
     }
     
     private func getMoviePosterImage(){

@@ -12,6 +12,8 @@ class MAMovieDetailController: UITableViewController {
     
     var movieToDetail: MAMovie?
     var moviePosterImage: UIImage?
+    
+    var genresString = ""
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -19,6 +21,19 @@ class MAMovieDetailController: UITableViewController {
         tableView.estimatedRowHeight = 400.0
         tableView.rowHeight = UITableViewAutomaticDimension
         tableView.tableFooterView = UIView(frame: .zero)
+        
+        setupGenresString()
+    }
+    
+    private func setupGenresString(){
+        guard let genres = movieToDetail?.genres else { return }
+        for genre in genres {
+            if genres.index(where: { $0.id == genre.id} ) == 0 {
+                genresString.append("\(String(describing: genre.name!))")
+            } else{
+                genresString.append("   \(String(describing: genre.name!))")
+            }
+        }
     }
 
     // MARK: - Table view data source
@@ -36,20 +51,32 @@ class MAMovieDetailController: UITableViewController {
     }
 
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        if indexPath.row == 0 {
-            let cell = tableView.dequeueReusableCell(withIdentifier: "moviePosterCell", for: indexPath) as! MAMovieDetailPosterCell
+        switch indexPath.row {
+        case 0:
+            let cell = tableView.dequeueReusableCell(withIdentifier: MAConstants.ReuseIdentifier.moviePosterCell, for: indexPath) as! MAMovieDetailPosterCell
             
             cell.moviePosterImageView.image = moviePosterImage
             cell.movieTitle.text = movieToDetail?.title
             
             return cell
-        } else {
-            let cell = tableView.dequeueReusableCell(withIdentifier: "movieSynopsis", for: indexPath)
             
-            cell.textLabel?.text = indexPath.row == 2 ? "Visão geral do filme:" : "Data de lançamento:"
+        case 1:
+            let cell = tableView.dequeueReusableCell(withIdentifier: MAConstants.ReuseIdentifier.movieSynopsis, for: indexPath)
+            
+            cell.textLabel?.text = NSLocalizedString("GENRES", comment: "")
+            cell.detailTextLabel?.text = genresString
+            
+            return cell
+            
+        case 2, 3:
+            let cell = tableView.dequeueReusableCell(withIdentifier: MAConstants.ReuseIdentifier.movieSynopsis, for: indexPath)
+            
+            cell.textLabel?.text = indexPath.row == 2 ? NSLocalizedString("MOVIE_OVERVIEW", comment: "") : NSLocalizedString("RELEASE_DATE", comment: "")
             cell.detailTextLabel?.text = indexPath.row == 2 ? movieToDetail?.overview : movieToDetail?.releaseDate
             
             return cell
+        default:
+            return UITableViewCell()
         }
     }
 

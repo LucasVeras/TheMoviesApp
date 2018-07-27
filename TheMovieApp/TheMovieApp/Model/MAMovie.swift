@@ -15,6 +15,9 @@ class MAMovie: Mappable {
     var imagePoster: String?
     var releaseDate: String?
     var overview: String?
+    var genresId: [Int]? // campo que desce do endpoint, depois é convertido para o array de generos
+    
+    var genres: [MAMovieGenre] = []
     
     required init?(map: Map) {
         
@@ -25,6 +28,7 @@ class MAMovie: Mappable {
         releaseDate <- map["release_date"]
         imagePoster <- map["poster_path"]
         overview <- map["overview"]
+        genresId <- map["genre_ids"]
     }
 
 }

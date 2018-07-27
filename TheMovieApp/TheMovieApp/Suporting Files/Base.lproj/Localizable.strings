@@ -1,0 +1,21 @@
+/* 
+  Localizable.strings
+  TheMovieApp
+
+  Created by Lucas Veras Aguiar Cardoso on 26/07/18.
+  Copyright © 2018 Lucas Veras Aguiar Cardoso. All rights reserved.
+*/
+
+//MARK: ERROR MESSAGES
+
+"WRAPPER_ERROR" = "Erro de wrapper";
+
+//MARK: TITLES
+
+"UPCOMING_MOVIES" = "Próximos lançamentos";
+
+//MARK: LABELS
+
+"GENRES" = "Gêneros:";
+"MOVIE_OVERVIEW" = "Visão geral do filme:";
+"RELEASE_DATE" = "Data de lançamento:";

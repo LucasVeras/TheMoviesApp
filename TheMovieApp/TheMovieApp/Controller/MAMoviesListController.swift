@@ -16,13 +16,14 @@ class MAMoviesListController: UITableViewController {
     
     private var upcomingMoviesFiltered:[MAMovie] = []
     private var upcomingMovies:[MAMovie] = []
+    private var movieGenres: [MAMovieGenre] = []
     private var numberOfPages = 1
     private let disposeBag = DisposeBag()
 
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        title = "Próximos lançamentos"
+        title = NSLocalizedString("UPCOMING_MOVIES", comment: "")
         
         tableView.estimatedRowHeight = 400.0
         tableView.rowHeight = UITableViewAutomaticDimension
@@ -30,6 +31,7 @@ class MAMoviesListController: UITableViewController {
 
         addActivityIndicatorTableViewFooter()
         getUpcomingMovies()
+        getMovieGenres()
         setupSearchBar()
     }
     
@@ -51,11 +53,27 @@ class MAMoviesListController: UITableViewController {
         navigationItem.hidesSearchBarWhenScrolling = false
         navigationItem.searchController = searchController
     }
-
+    
+    private func getMovieGenres(){
+        let movieGenresObservable = MANetwork().sendGETRequestResponseJSON(url: MANetwork.GET_GENRES, responseType: MAMovieGenre.self, rootJSONKey: .Genres)
+        
+        movieGenresObservable.subscribe(onNext: { [weak self](movieGenres) in
+            self?.movieGenres.append(contentsOf: movieGenres)
+            
+            guard let movies = self?.upcomingMoviesFiltered else { return }
+            self?.setupGenresInMovies(movies: movies)
+        }, onError: { (error) in
+            print(error)
+        }, onCompleted: {
+            self.reloadTableView()
+        }).disposed(by: disposedBag)
+    }
+    
     private func getUpcomingMovies(){
-        let upcomingMoviesObservable = MANetwork().sendGETRequestResponseJSON(url: MANetwork.UPCOMING_MOVIE_LIST_PAGE + String(describing: numberOfPages), responseType: MAMovie.self)
+        let upcomingMoviesObservable = MANetwork().sendGETRequestResponseJSON(url: MANetwork.UPCOMING_MOVIE_LIST_PAGE + String(describing: numberOfPages), responseType: MAMovie.self, rootJSONKey: .Results)
         
         upcomingMoviesObservable.subscribe(onNext: { [weak self](upcomingMovies) in
+            self?.setupGenresInMovies(movies: upcomingMovies)
             self?.upcomingMovies.append(contentsOf: upcomingMovies)
             self?.upcomingMoviesFiltered = (self?.upcomingMovies)!
         }, onError: { (error) in
@@ -63,6 +81,22 @@ class MAMoviesListController: UITableViewController {
         }, onCompleted: {
             self.reloadTableView()
         }).disposed(by: disposedBag)
+    }
+    
+    private func setupGenresInMovies(movies: [MAMovie] = []){
+        DispatchQueue.main.async {
+            for movie in movies {
+                if movie.genres.count == 0 {
+                    guard let genresId = movie.genresId else { return }
+                    
+                    for genreId in genresId {
+                        guard let genre = (self.movieGenres.filter { $0.id == genreId }.first) else { return }
+                        
+                        movie.genres.append(genre)
+                    }
+                }
+            }
+        }
     }
     
     private func addActivityIndicatorTableViewFooter(){
@@ -102,7 +136,7 @@ class MAMoviesListController: UITableViewController {
     }
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: "movieListCell", for: indexPath) as! MAMovieListCell
+        let cell = tableView.dequeueReusableCell(withIdentifier: MAConstants.ReuseIdentifier.movieListCell, for: indexPath) as! MAMovieListCell
 
         cell.movie = upcomingMoviesFiltered[indexPath.row]
 
@@ -114,7 +148,7 @@ class MAMoviesListController: UITableViewController {
     }
     
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        performSegue(withIdentifier: "showMovieDetail", sender: indexPath)
+        performSegue(withIdentifier: MAConstants.Segue.showMovieDetail, sender: indexPath)
     }
 
 }
@@ -126,6 +160,7 @@ extension MAMoviesListController: UITableViewDataSourcePrefetching {
         }
     }
 }
+
 
 private extension MAMoviesListController {
     func isLoadingCell(for indexPath: IndexPath) -> Bool {
